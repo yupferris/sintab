@@ -6,6 +6,8 @@ using namespace std;
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <stdint.h>
+#include <assert.h>
 
 class Timer
 {
@@ -50,24 +52,30 @@ void initFastCos()
 
 double fastCos(double x)
 {
-	const int fastCosTabMask = fastCosTabSize - 1;
+	x = abs(x); // cosine is symmetrical around 0, let's get rid of negative values
 
-	const int fractBits = 16;
-	const int fractScale = 1 << fractBits;
-	const int fractMask = fractScale - 1;
+	// normalize range from 0..2PI to 1..2
+	const auto phaseScale = 1.0 / (M_PI * 2);
+	auto phase = 1.0 + x * phaseScale;
 
-	double phase = x * ((double)fastCosTabSize / (M_PI * 2) * (double)fractScale);
-	unsigned long long phaseQuantized = (unsigned long long)(long long)phase;
+	auto phaseAsInt = *reinterpret_cast<uint64_t*>(&phase);
+	int exponent = (phaseAsInt >> 52) - 1023;
+	// because we took the absolute value and added 1.0 before, the exponent will be
+	// at least 0, which means we don't need conditional shift-direction later
+	assert(exponent >= 0);
 
-	unsigned int whole = (unsigned int)phaseQuantized >> fractBits;
-	unsigned int fract = (unsigned int)phaseQuantized & fractMask;
+	const auto fractBits = 32 - fastCosTabLog2Size;
+	const auto fractScale = 1 << fractBits;
+	const auto fractMask = fractScale - 1;
 
-	int index = whole & fastCosTabMask;
+	auto significand = uint32_t((phaseAsInt << exponent) >> (52 - 32));
+	auto index = significand >> fractBits;
+	int fract = significand & fractMask;
 
 	auto left = fastCosTab[index];
 	auto right = fastCosTab[index + 1];
 
-	double fractMix = (double)fract * (1.0 / fractScale);
+	auto fractMix = fract * (1.0 / fractScale);
 	return left + (right - left) * fractMix;
 }
 

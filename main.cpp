@@ -35,8 +35,8 @@ private:
 	long long elapsedTimeUs;
 };
 
-static const int fastSinTabSize = 1024; // Must be a power of 2
-
+static const int fastSinTabLog2Size = 10; // size = 1024
+static const int fastSinTabSize = (1 << fastSinTabLog2Size);
 static double fastSinTab[fastSinTabSize];
 
 void initFastSin()

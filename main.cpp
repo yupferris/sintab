@@ -68,7 +68,7 @@ double fastSin(double x)
 	double left = fastSinTab[leftIndex];
 	double right = fastSinTab[rightIndex];
 
-	double fractMix = (double)fract * (1.0 / (double)fractScale);
+	double fractMix = (double)fract * (1.0 / fractScale);
 	double result = left + (right - left) * fractMix;
 
 	const int invertMask = fastSinTabSize;

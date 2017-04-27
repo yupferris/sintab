@@ -140,18 +140,22 @@ int main(int argc, char **argv)
 	// Total error
 	cout << "Total error: ";
 	double totalError = 0.0;
+	double maxError = 0.0;
 	for (int i = 0; i < numIterations; i++)
 	{
 		double x = (double)i;
 		double orig = func(x);
 		double fast = fastFunc(x);
-		totalError += abs(fast - orig);
+		double error = abs(fast - orig);
+		totalError += error;
+		maxError = max(maxError, error);
 	}
 	cout << totalError << endl;
 	// Average error is total error / num iterations / range of func (in this case 1 - (-1) == 2)
 	//  Not sure if this makes sense but it's some metric to optimize for at least :)
 	double averageError = totalError / (double)numIterations / 2.0;
 	cout << "Average error: " << (averageError * 100.0) << "%" << endl;
+	cout << "Max error: " << maxError << endl;
 
 	// Draw fn
 	cout << "Graph:" << endl;

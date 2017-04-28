@@ -84,12 +84,12 @@ double fastCos(double x)
 
 double func(double x)
 {
-	return sin(x + sin(x * 0.02f));
+	return sin(x);
 }
 
 double fastFunc(double x)
 {
-	return fastSin(x + fastSin(x * 0.02f));
+	return fastSin(x);
 }
 
 int main(int argc, char **argv)

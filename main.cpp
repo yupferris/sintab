@@ -141,14 +141,17 @@ int main(int argc, char **argv)
 	cout << "Total error: ";
 	double totalError = 0.0;
 	double maxError = 0.0;
-	for (int i = 0; i < numIterations; i++)
+	for (int exp = -10; exp < 10; ++exp)
 	{
-		double x = (double)i;
-		double orig = func(x);
-		double fast = fastFunc(x);
-		double error = abs(fast - orig);
-		totalError += error;
-		maxError = max(maxError, error);
+		for (double significand = 1.0; significand < 2.0; significand += 1e-5)
+		{
+			double x = ldexp(significand, exp);
+			double orig = func(x);
+			double fast = fastFunc(x);
+			double error = abs(fast - orig);
+			totalError += error;
+			maxError = max(maxError, error);
+		}
 	}
 	cout << totalError << endl;
 	// Average error is total error / num iterations / range of func (in this case 1 - (-1) == 2)

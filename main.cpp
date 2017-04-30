@@ -35,56 +35,56 @@ private:
 	long long elapsedTimeUs;
 };
 
-static const int fastSinTabLog2Size = 10; // size = 1024
-static const int fastSinTabSize = (1 << fastSinTabLog2Size);
-static double fastSinTab[fastSinTabSize];
+static const int fastCosTabLog2Size = 10; // size = 1024
+static const int fastCosTabSize = (1 << fastCosTabLog2Size);
+static double fastCosTab[fastCosTabSize];
 
-void initFastSin()
+void initFastCos()
 {
-	for (int i = 0; i < fastSinTabSize; i++)
+	for (int i = 0; i < fastCosTabSize; i++)
 	{
-		double phase = (double)i / fastSinTabSize * (M_PI * 2);
-		fastSinTab[i] = sin(phase);
+		double phase = double(i) * ((M_PI * 2) / fastCosTabSize);
+		fastCosTab[i] = cos(phase);
 	}
 }
 
-double fastSin(double x)
+double fastCos(double x)
 {
-	const int fastSinTabMask = fastSinTabSize - 1;
+	const int fastCosTabMask = fastCosTabSize - 1;
 
 	const int fractBits = 16;
 	const int fractScale = 1 << fractBits;
 	const int fractMask = fractScale - 1;
 
-	double phase = x * ((double)fastSinTabSize / (M_PI * 2) * (double)fractScale);
+	double phase = x * ((double)fastCosTabSize / (M_PI * 2) * (double)fractScale);
 	unsigned long long phaseQuantized = (unsigned long long)(long long)phase;
 
 	unsigned int whole = (unsigned int)phaseQuantized >> fractBits;
 	unsigned int fract = (unsigned int)phaseQuantized & fractMask;
 
-	int leftIndex = whole & fastSinTabMask;
-	int rightIndex = (whole + 1) & fastSinTabMask;
+	int leftIndex = whole & fastCosTabMask;
+	int rightIndex = (whole + 1) & fastCosTabMask;
 
-	double left = fastSinTab[leftIndex];
-	double right = fastSinTab[rightIndex];
+	double left = fastCosTab[leftIndex];
+	double right = fastCosTab[rightIndex];
 
 	double fractMix = (double)fract * (1.0 / fractScale);
 	return left + (right - left) * fractMix;
 }
 
-double fastCos(double x)
+double fastSin(double x)
 {
-	return fastSin(x + M_PI_2);
+	return fastCos(x - M_PI_2);
 }
 
 double func(double x)
 {
-	return sin(x);
+	return cos(x);
 }
 
 double fastFunc(double x)
 {
-	return fastSin(x);
+	return fastCos(x);
 }
 
 int main(int argc, char **argv)
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	cout << "Table init: ";
 	timer.Start();
 
-	initFastSin();
+	initFastCos();
 
 	timer.Stop();
 	cout << timer.ElapsedTimeUs() << "us" << endl;

@@ -37,11 +37,11 @@ private:
 
 static const int fastCosTabLog2Size = 10; // size = 1024
 static const int fastCosTabSize = (1 << fastCosTabLog2Size);
-static double fastCosTab[fastCosTabSize];
+static double fastCosTab[fastCosTabSize + 1];
 
 void initFastCos()
 {
-	for (int i = 0; i < fastCosTabSize; i++)
+	for (int i = 0; i < fastCosTabSize + 1; i++)
 	{
 		double phase = double(i) * ((M_PI * 2) / fastCosTabSize);
 		fastCosTab[i] = cos(phase);
@@ -62,11 +62,10 @@ double fastCos(double x)
 	unsigned int whole = (unsigned int)phaseQuantized >> fractBits;
 	unsigned int fract = (unsigned int)phaseQuantized & fractMask;
 
-	int leftIndex = whole & fastCosTabMask;
-	int rightIndex = (whole + 1) & fastCosTabMask;
+	int index = whole & fastCosTabMask;
 
-	double left = fastCosTab[leftIndex];
-	double right = fastCosTab[rightIndex];
+	auto left = fastCosTab[index];
+	auto right = fastCosTab[index + 1];
 
 	double fractMix = (double)fract * (1.0 / fractScale);
 	return left + (right - left) * fractMix;

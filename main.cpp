@@ -43,7 +43,7 @@ void initFastSin()
 {
 	for (int i = 0; i < fastSinTabSize; i++)
 	{
-		double phase = (double)i / fastSinTabSize * M_PI;
+		double phase = (double)i / fastSinTabSize * (M_PI * 2);
 		fastSinTab[i] = sin(phase);
 	}
 }
@@ -56,7 +56,7 @@ double fastSin(double x)
 	const int fractScale = 1 << fractBits;
 	const int fractMask = fractScale - 1;
 
-	double phase = x * ((double)fastSinTabSize / M_PI * (double)fractScale);
+	double phase = x * ((double)fastSinTabSize / (M_PI * 2) * (double)fractScale);
 	unsigned long long phaseQuantized = (unsigned long long)(long long)phase;
 
 	unsigned int whole = (unsigned int)phaseQuantized >> fractBits;
@@ -69,12 +69,7 @@ double fastSin(double x)
 	double right = fastSinTab[rightIndex];
 
 	double fractMix = (double)fract * (1.0 / fractScale);
-	double result = left + (right - left) * fractMix;
-
-	const int invertMask = fastSinTabSize;
-	bool invert = (whole & invertMask) != 0;
-
-	return invert ? -result : result;
+	return left + (right - left) * fractMix;
 }
 
 double fastCos(double x)

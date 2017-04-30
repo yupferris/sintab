@@ -160,6 +160,23 @@ int main(int argc, char **argv)
 	cout << "Average error: " << (averageError * 100.0) << "%" << endl;
 	cout << "Max error: " << maxError << endl;
 
+	for (int exp = 0; exp < 52; ++exp)
+	{
+		for (double significand = 1.0; significand < 2.0; significand += 1e-1)
+		{
+			double x = ldexp(significand, exp);
+			double orig = func(x);
+			double fast = fastFunc(x);
+			double error = abs(fast - orig);
+			if (error > 0.1)
+			{
+				cout << "Range problems at exponent : " << exp << endl;
+				goto done;
+			}
+		}
+	}
+done:
+
 	// Draw fn
 	cout << "Graph:" << endl;
 	const int gridWidth = 100;

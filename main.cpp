@@ -6,6 +6,8 @@ using namespace std;
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <stdint.h>
+#include <assert.h>
 
 class Timer
 {
@@ -35,61 +37,61 @@ private:
 	long long elapsedTimeUs;
 };
 
-static const int fastSinTabSize = 1024; // Must be a power of 2
+static const int fastCosTabLog2Size = 10; // size = 1024
+static const int fastCosTabSize = (1 << fastCosTabLog2Size);
+static double fastCosTab[fastCosTabSize + 1];
 
-static double fastSinTab[fastSinTabSize];
-
-void initFastSin()
+void initFastCos()
 {
-	for (int i = 0; i < fastSinTabSize; i++)
+	for (int i = 0; i < fastCosTabSize + 1; i++)
 	{
-		double phase = (double)i / fastSinTabSize * M_PI;
-		fastSinTab[i] = sin(phase);
+		double phase = double(i) * ((M_PI * 2) / fastCosTabSize);
+		fastCosTab[i] = cos(phase);
 	}
-}
-
-double fastSin(double x)
-{
-	const int fastSinTabMask = fastSinTabSize - 1;
-
-	const int fractBits = 16;
-	const int fractScale = 1 << fractBits;
-	const int fractMask = fractScale - 1;
-
-	double phase = x * ((double)fastSinTabSize / M_PI * (double)fractScale);
-	unsigned long long phaseQuantized = (unsigned long long)(long long)phase;
-
-	unsigned int whole = (unsigned int)phaseQuantized >> fractBits;
-	unsigned int fract = (unsigned int)phaseQuantized & fractMask;
-
-	int leftIndex = whole & fastSinTabMask;
-	int rightIndex = (whole + 1) & fastSinTabMask;
-
-	double left = fastSinTab[leftIndex];
-	double right = fastSinTab[rightIndex];
-
-	double fractMix = (double)fract * (1.0 / (double)fractScale);
-	double result = left + (right - left) * fractMix;
-
-	const int invertMask = fastSinTabSize;
-	bool invert = (whole & invertMask) != 0;
-
-	return invert ? -result : result;
 }
 
 double fastCos(double x)
 {
-	return fastSin(x + M_PI_2);
+	x = abs(x); // cosine is symmetrical around 0, let's get rid of negative values
+
+	// normalize range from 0..2PI to 1..2
+	const auto phaseScale = 1.0 / (M_PI * 2);
+	auto phase = 1.0 + x * phaseScale;
+
+	auto phaseAsInt = *reinterpret_cast<uint64_t*>(&phase);
+	int exponent = (phaseAsInt >> 52) - 1023;
+	// because we took the absolute value and added 1.0 before, the exponent will be
+	// at least 0, which means we don't need conditional shift-direction later
+	assert(exponent >= 0);
+
+	const auto fractBits = 32 - fastCosTabLog2Size;
+	const auto fractScale = 1 << fractBits;
+	const auto fractMask = fractScale - 1;
+
+	auto significand = uint32_t((phaseAsInt << exponent) >> (52 - 32));
+	auto index = significand >> fractBits;
+	int fract = significand & fractMask;
+
+	auto left = fastCosTab[index];
+	auto right = fastCosTab[index + 1];
+
+	auto fractMix = fract * (1.0 / fractScale);
+	return left + (right - left) * fractMix;
+}
+
+double fastSin(double x)
+{
+	return fastCos(x - M_PI_2);
 }
 
 double func(double x)
 {
-	return sin(x + sin(x * 0.02f));
+	return cos(x);
 }
 
 double fastFunc(double x)
 {
-	return fastSin(x + fastSin(x * 0.02f));
+	return fastCos(x);
 }
 
 int main(int argc, char **argv)
@@ -102,7 +104,7 @@ int main(int argc, char **argv)
 	cout << "Table init: ";
 	timer.Start();
 
-	initFastSin();
+	initFastCos();
 
 	timer.Stop();
 	cout << timer.ElapsedTimeUs() << "us" << endl;
@@ -140,18 +142,42 @@ int main(int argc, char **argv)
 	// Total error
 	cout << "Total error: ";
 	double totalError = 0.0;
-	for (int i = 0; i < numIterations; i++)
+	double maxError = 0.0;
+	for (int exp = -10; exp < 10; ++exp)
 	{
-		double x = (double)i;
-		double orig = func(x);
-		double fast = fastFunc(x);
-		totalError += abs(fast - orig);
+		for (double significand = 1.0; significand < 2.0; significand += 1e-5)
+		{
+			double x = ldexp(significand, exp);
+			double orig = func(x);
+			double fast = fastFunc(x);
+			double error = abs(fast - orig);
+			totalError += error;
+			maxError = max(maxError, error);
+		}
 	}
 	cout << totalError << endl;
 	// Average error is total error / num iterations / range of func (in this case 1 - (-1) == 2)
 	//  Not sure if this makes sense but it's some metric to optimize for at least :)
 	double averageError = totalError / (double)numIterations / 2.0;
 	cout << "Average error: " << (averageError * 100.0) << "%" << endl;
+	cout << "Max error: " << maxError << endl;
+
+	for (int exp = 0; exp < 52; ++exp)
+	{
+		for (double significand = 1.0; significand < 2.0; significand += 1e-1)
+		{
+			double x = ldexp(significand, exp);
+			double orig = func(x);
+			double fast = fastFunc(x);
+			double error = abs(fast - orig);
+			if (error > 0.1)
+			{
+				cout << "Range problems at exponent : " << exp << endl;
+				goto done;
+			}
+		}
+	}
+done:
 
 	// Draw fn
 	cout << "Graph:" << endl;

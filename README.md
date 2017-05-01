@@ -8,7 +8,7 @@ A quick sine table test I did for.. something else :)
 
 This is an implementation of a table-based `sin` (and `cos`) replacement, useful for example in software synthesizers. It's not guaranteed to be the fastest around, but gained some quite noticeable speed gains in a certain sine-heavy project I have :) .
 
-See ![the implementation](main.cpp#L53) for more details.
+See [the implementation](main.cpp#L53) for more details.
 
 Thanks to [kusma](https://github.com/kusma/) for taking this further and squeezing even more perf out of it :)
 

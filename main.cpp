@@ -37,7 +37,7 @@ private:
 	long long elapsedTimeUs;
 };
 
-static const int fastCosTabLog2Size = 10; // size = 1024
+static const int fastCosTabLog2Size = 9; // size = 512
 static const int fastCosTabSize = (1 << fastCosTabLog2Size);
 static double fastCosTab[fastCosTabSize + 1];
 
